@@ -1,0 +1,210 @@
+\documentclass[journal,twoside,web]{ieeecolor}
+\usepackage{generic}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\makeatletter
+\def\BState{\State\hskip-\ALG@thistlm}
+\makeatother
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\markboth{\journalname, 12/31/2018}{Sequential Minimal Optimization and stochastic gradient descent for Training Support Vector Machines}
+
+\begin{document}
+\title{
+\bigskip Sequential Minimal Optimization and stochastic gradient descent for Training Support Vector Machines}
+\author{Kemiao Huang, 11610728, \IEEEmembership{CSE, Southern University of Science and Technology}
+\vspace{-4ex}}
+\maketitle
+
+\begin{abstract}
+During the training of support vector machines, two classical methods are widely used, namely stochastic gradient descent (SGD) and sequential minimal optimization (SMO). In this project, those two algorithms are implemented based on Python to train SVM and predict labels and realize recognition. 
+\end{abstract}
+
+\begin{IEEEkeywords}
+Stochastic gradient descent; Sequential Minimal Optimization; Support Vector Machine
+\end{IEEEkeywords}
+
+\section{Preliminaries}
+\label{sec:preliminaries}
+\IEEEPARstart{T}{he} support vector machine is a very useful model for computer recognition and classification. It is a self-supervised machine learning model with wide application field. This project aims to implement the training for SVM in an efficient way.
+\subsection{Problem Description}
+Given a training dataset with multidimensional space points and their own labels. SVM tries to separate the points with different labels by a max interval line or curve to give a best predict for the test points.
+
+\subsection{Problem Application}
+SVMs are helpful in text and hypertext categorization as their application can significantly reduce the need for labelled training instances in both the standard inductive and transductive settings. Classification of images and hand-written characters recognition can be performed using SVMs. In addition, it has been widely applied in the biological sciences.
+
+\section{methodology}
+This section generally describes the two training methods and mathematical derivation for SVMs.
+\subsection{Notation}
+The important variable notations are shown in TABLE 1.
+\begin{table}[]
+\centering
+\caption{Important variables used in the report}
+\label{tab:var}
+\begin{tabular}{ll}
+\multicolumn{1}{c}{Variables} & Descriptions                                             \\ \hline
+$n$                           & number of dimension of eigenvectors \\
+$w$ 					      & weight matrix for SVC\\
+$b$ 					      & element of linear function for SVC \\
+$X$							  & input eigenvectors  \\
+$y$							  & input labels  \\
+$\gamma$                      & learning rate for SGD             \\
+$\epsilon$					  & tolerance for soft margin algorithm\\
+$C$							  & penalty parameter for soft margin algorithm\\
+$N$                           & number of iterations             
+\end{tabular}
+\end{table}
+
+
+\subsection{Data Structures}
+In this project, little special data structure is used. Overall, the most important structure is Numpy array. The mathematical matrix calculation is the main implementation for stochastic gradient descent algorithm and sequential minimal optimization algorithm.
+
+\subsection{Model Design}
+SVM model is trained by eigenvectors using stochastic gradient descent algorithm or sequential minimal optimization algorithm. 
+\subsubsection{convex quadratic programming}
+The support vector classifier (SVC) is:
+\begin{center}
+$f(x) = w^{T} + b$
+\end{center}
+The objective function for convex quadratic programming (QP) is: 
+\begin{center}
+$\min\limits_{w, b}\dfrac{2}{\vert\vert w\vert\vert}$, \\[10pt]
+s.t. $y_i((w\cdot x_i)+b)\geq 1, i=1,\dotsc, l $
+\bigskip
+\end{center}
+To solve the best $w$ and $b$, SGD uses loss function $max(0, 1-y_i(\langle\textbf{w}, \textbf{x}_i\rangle + b))$ to evaluate the difference between the prediction of current state and the target value and then update the $w$ of the reverse direction from the gradient according to the learning rate $\gamma$. \cite{tutorial}
+\bigskip 
+\subsubsection{Lagrange Duality}
+To solve the original in an easy way, using Lagrange duality to transform the equation is a good choice, especially for multidimension problems. \cite{tutorial} It will introduce the Lagrange multiplier and the condition for the transformation is KKT condition.\\
+\begin{center}
+$max_\alpha \textit{W}(\alpha) = \sum_{i=1}^{m} \alpha_i - \frac{1}{2}\sum_{i, j = 1}^{m} y^{i}y^{j}\alpha_i\alpha_j\langle x^{i},x^{j}\rangle$
+\end{center}
+\bigskip with following constraints:\\
+\begin{center}
+$0\leq \alpha_i\leq C, i = 1, \cdots, m$\\[10pt]
+$\sum_{i=1}^{m} \alpha_iy^{i} = 0$
+\end{center}
+\bigskip
+To solve the dual form of the objective function, SMO has rise. 
+\subsection{Details of Algorithms}
+\subsubsection{Stochastic Gradient Descent}
+Stochastic Gradient Descent (SGD) is a simple yet very efficient approach to discriminative learning of linear classifiers under convex loss functions such as (linear) Support Vector Machines and Logistic Regression. Even though SGD has been around in the machine learning community for a long time, it has received a considerable amount of attention just recently in the context of large-scale learning \cite{scikit-learn}. Using stochastic way is just reduce the time for calculating the huge number of data.
+\begin{algorithm}
+\caption{SGD}
+\begin{algorithmic} [1]
+\STATE add one column at the front of the input eigenvector and the weight matrix.\\
+generate random eigenvector and labels from input:
+\STATE $ordered\_vector \gets [1, \cdots, n]$
+\FOR {$i\gets 1$ to $N$}
+\STATE $randomize\gets$ shuffle$(ordered\_vector)$
+\STATE $random\_X\gets X[randomize]$
+\STATE $random\_y\gets y[randomize]$
+\STATE $loss\gets 0$
+\FOR {$x_i, y_i$ in $zip(random\_X, random\_y)$}
+\STATE $loss \gets loss + $max$(0, 1-y_i(\langle\textbf{w}, \textbf{x}_i\rangle + b))$
+\IF {$y_i * x_i \cdot x_i < 1$}
+\STATE $w \gets w - \gamma * (-y_i * x_i)$
+\ENDIF
+\\record loss for every iteration:
+\PRINT $i: loss$
+\ENDFOR
+\ENDFOR
+\RETURN $w$
+\end{algorithmic}
+\end{algorithm}
+
+To give a prediction after training, just add a column at the front of the test matrix and make dot product with $w$. The prediction result should be approximated to 1 or -1.
+\bigskip
+\subsubsection{Sequential Minimal Optimization}
+Sequential Minimal Optimization, or SMO. Training a support vector machine requires the solution of a very large quadratic programming (QP) optimization problem. SMO breaks this large QP problem into a series of smallest possible QP problems. These small QP problems are solved analytically, which avoids using a time-consuming numerical QP optimization as an inner loop. \cite{smo} \par
+The kernel functions used in this project are linear, polynomial and Gaussian RBF. 
+\begin{algorithm}
+\caption{SMO}
+\begin{algorithmic} [1]
+\STATE initialize $\alpha$ to be all 0
+\WHILE {1}
+\STATE $\alpha'\gets \alpha$
+\FOR {$j$ from 1 to $n$}
+\STATE $i \gets$ random integer other than $j$ in [1, $n$]
+\STATE $x_i, x_j, y_i, y_j \gets X[i], X[j], y[i], y[j]$
+\STATE $k_{ij} \gets k(x_i, x_i) + k(x_j, x_j) - 2 * k(x_i, x_j)$
+\IF {$k_{ij} = 0$}
+\STATE \textbf{continue}
+\ENDIF
+\STATE $\alpha_j', \alpha_i' \gets \alpha[j], \alpha[i]$
+\IF {$y_j \neq y_i$}
+\STATE $L\gets$  max(0, $\alpha_j' - \alpha_i'$)
+\STATE $H\gets$  min($C$, $C - \alpha_j' + \alpha_i'$)
+\ELSE
+\STATE $L\gets$  max(0, $\alpha_i' + \alpha_j' -C$)
+\STATE $H\gets$  min(0, $\alpha_i' + \alpha_j'$)
+\ENDIF
+\STATE $w\gets X^T \cdot \alpha \times y$
+\STATE $b\gets$  mean($y - X^T \cdot W^T$)
+\STATE $E_i \gets $ predict$(x_i) - y_i$
+\STATE $E_j \gets $ predict$(x_j) - y_j$
+\STATE $result \gets \alpha_j' + y_j * (E_i - E_j) / k_{ij}$
+\STATE $result \gets$ max($\alpha[j], L$)
+\STATE $result \gets$ min($\alpha[j], H$)
+\STATE $\alpha[j] \gets result$
+\STATE $\alpha[i] \gets \alpha_i' + y_i * y_j * (\alpha_j' - \alpha[j])$
+\ENDFOR  
+\\ check for convergence
+\IF {normalize($\alpha - \alpha' < \epsilon$)}
+\STATE \textbf{break}
+\ENDIF
+\\ final result for b and w
+\STATE $b\gets$  mean($y - X^T \cdot W^T$)
+\IF {kernel type = linear}
+\STATE $w\gets X^T \cdot \alpha \times y$
+\ENDIF
+\ENDWHILE
+\RETURN $w$, $b$
+\end{algorithmic}
+\end{algorithm}
+
+To give the prediction, just put the value of $w$ and $b$ into the SVC and approximate it into 1 or -1.
+
+\section{Empirical Verification}
+This section shows the results for SVM project.
+\subsection{Dataset}
+Datasets such as scikit-learn dataset are simply used for testing the utility for my code. The library functions are mainly used for comparing the performance with my implementation.
+\subsection{Performance Measurement}
+The performance is measured by the time cost and the difference between prediction and ground truth.
+\subsection{Hyperparameters}
+\subsubsection{SGD}The number of epochs for one big iteration is 2500. The learning rate is 0.01
+\subsubsection{SMO}The parameters are the same as the default parameters as scikit-learn's SVM.SVC. $C$ = 1.0, $\epsilon$ = 0.001, degree for polynomial equation = 3.
+\subsection{Experimental Result}
+The results are shown in table 2.
+\begin{table}
+\centering
+\caption{SVM result}
+\begin{tabular}{|l|l|l|} 
+\hline
+     & time cost(s) & mean error  \\ 
+\hline
+SGD1 & 8.3          & 0.008       \\ 
+\hline
+SGD2 & 5.3          & 0.012       \\ 
+\hline
+SMO1 & 56.2         & 0           \\ 
+\hline
+SMO2 & 9.4          & 0.24        \\
+\hline
+\end{tabular}
+\end{table}
+
+
+\subsection{Conclusion}
+Those two different ways have their own pros and cons. The advantages for SGD are its efficiency and ease of implementation while disadvantages are its need for many hyperparameters and iterations as well as sensitivity for feature scaling. \cite{scikit-learn}. SMO can easily introduce different types of kernel functions and it can be much more robust for bad training data. However, it still cost a huge amount of time to train.
+
+
+\bibliographystyle{IEEEtran}
+\bibliography{reference}
+
+\end{document}

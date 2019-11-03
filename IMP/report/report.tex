@@ -1,0 +1,247 @@
+\documentclass[9pt,shortpaper,twoside,web]{ieeecolor}
+\usepackage{generic}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{caption}
+\usepackage{amssymb}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\markboth{\journalname, 2018}
+{Author \MakeLowercase{\textit{et al.}}: Information Diffusion and Influence Maximization of Social Networks}
+\begin{document}
+\title{\bigskip\bigskip Information Diffusion and Influence Maximization of Social Networks}
+\author{Kemiao Huang, 11610728, \IEEEmembership{Undergraduate, CSE}, \textit{Southern University of Science and Technology} }
+
+\maketitle
+
+\begin{abstract}
+Influence Maximization(IM), which selects a set of k users (called seed set) from a social network to maximize the expected number of influenced users (called influence spread), is a key algorithmic problem in social influence analysis. Due to its immense application potential and enormous technical challenges, IM has been extensively studied in the past decade. In this project, the Independent Cascade (IC) model and Linear Threshold (LT) model are generated and use efficient CELF method to find the seeds which maximize the influence .
+\end{abstract}
+
+\begin{IEEEkeywords}
+Social Networks, Greedy Algorithms, Heuristic Algorithms, Diffusion Models
+\end{IEEEkeywords}
+\bigskip
+\section{Preliminaries}
+This project aims to solve the problem of influence maximization (IM). As a key algorithmic problem in information diffusion research, it has been extensively studied recently due to its potential commercial value.
+
+\subsection{Problem Description}
+IM aims to select a set of k users in an online social network, aka. seed set with the maximum influence spread, i.e., the expected number of influenced users through the seed set in information diffusion is maximized. 
+\subsection{Problem Application}
+A well-known application of IM is viral marketing[1], where a company may wish to spread the adoption of a new product from some initially selected adopters through the social links between users. Besides viral marketing, IM is also the cornerstone in many other important applications such as network monitoring[2], rumor control[3], [4], and social recommendation[5].  
+\bigskip
+\section{Methodology}
+\subsection{Notations}
+\subsubsection{G}social graph
+\subsubsection{V}vertices set
+\subsubsection{E}edges set
+\subsubsection{k}max size of seed
+\subsubsection{n}number of cores used in multiprocessing
+\subsubsection{e}tolerant error in evaluation
+
+
+\subsection{Data Structures}
+\subsubsection{Priority Queue}
+To efficiently implement CELF, the max heap is used for insert and pop vertices with its margin influence.
+\subsubsection{Dictionary}
+The python dict is used for storing the neighbours. 
+\subsubsection{Set}
+The set structure are used to store and add the activated vertices.
+
+\subsection{Model Design}
+Firstly build the graph with vertices and its neighbours with weights. For ISE, the seeds are diffused by independent cascade    (IC) model and linear threshold (LT) model with several times of random tries. For IMP, CELF are used. When every vertex are included in the seed set, IC or LT are used for influence estimation. To realize the parallel computation, the multiprocessing pool are used to simulate the influence diffusion model for each process.
+
+\subsection{Algorithms}
+\subsubsection{Independent Cascade Model}
+When a vertex \textit{u} gets activated, initially or by another vertex, it has a single chance to activate each inactive neighbour \textit{v} with the probability proportional to the edge weight \textit{w(u,v)}.
+Afterwards, the activated vertices remain its active state but they have no contribution in later activations.
+The weight of the edge (\textit{u,v}) is calculated as \textit{w(u,v)} =
+$\dfrac{1}{d_{in}}$, where $d_{in}$ denotes the in-degree of vertex \textit{v}.
+\begin{algorithm}
+\caption{Independent Cascade}
+\begin{algorithmic} [h]
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\REQUIRE $G, seed$
+\ENSURE influence spread of seed
+\STATE initialize $S \gets seed$, $activated \gets seed$
+\WHILE {$S \neq \varnothing $}
+\STATE $new\_S \gets \varnothing$
+\FOR {$active \in S$}
+\FOR {$inactive \in$ inactive neighbours of $active$}
+\STATE tries to activate $inactive$ by $actuve$
+\IF {succeed to activate}
+\STATE add $inactive$ to $new\_S$
+\ENDIF
+\ENDFOR
+\ENDFOR
+\STATE add $new\_S$ to $activated$
+\STATE $S\gets new\_S$
+\ENDWHILE
+\RETURN $|activated|$
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Linear Threshold Model}
+At the beginning, each vertex \textit{v} selects a random threshold $\theta_v$ uniformly at random in range [0,1]. An inactive vertex \textit{v} becomes activated if
+$\sum_{active neighbour u}^{} w(u,v) \geq\theta_v$. The weight of the edge \textit{(u,v)} is calculated as $w(u,v)=\dfrac{1}{d_{in}}$, where $d_{in}$ denotes the in-degree of vertex \textit{v}.
+\begin{algorithm}
+\caption{Linear Threshold}
+\begin{algorithmic} [h]
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\REQUIRE $G, seed$
+\ENSURE influence spread of seed
+\STATE initialize $S \gets seed$, $activated \gets seed$
+\STATE set a random threshold for each vertex
+\WHILE {$S \neq \varnothing $}
+\STATE $new\_S \gets \varnothing$
+\FOR {$active \in S$}
+\FOR {$inactive\in$ inactive neighbours of $active$}
+\STATE $w\gets$ total weights of incoming active neighbours of $inactive$
+\IF {$inactive.threshold<w$}
+\STATE add $inactive$ to $new\_S$
+\ENDIF
+\ENDFOR
+\ENDFOR
+\STATE add $new\_S$ to $activated$
+\STATE $S\gets new\_S$
+\ENDWHILE
+\RETURN $|activated|$
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Evaluation}
+To get the precise influence spread of the seed, we should implement the two diffusion models for large number of times. To stop the program after the result converged, a counter is used to check the times for current results which obey the error $e$. 
+
+\begin{algorithm}
+\caption{Evaluation}
+\begin{algorithmic}[h]
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\REQUIRE $G, model, seed$
+\ENSURE influence spread of seed after estimating for many times
+\\
+\STATE initialize $sum\gets0$, $rounds\gets0$, $count\gets0$
+\STATE set $N$ processors for pool
+\STATE $result\gets$ sample output of $model$ with $seed$
+\WHILE {$count<breakcount$ or time out}
+\STATE run $model$ with $seed$ asynchronously in pool
+\STATE $sum\gets sum+$ output of model 
+\STATE $rounds=\gets rounds+1$
+\STATE $current\gets sum/rounds$
+\IF {$|current-result|<e$}
+\STATE $count\gets count+1$
+\ELSE
+\STATE $count\gets 0$
+\ENDIF
+\STATE $result\gets current$
+\ENDWHILE
+\RETURN $result$
+\end{algorithmic} 
+\end{algorithm}
+
+\subsubsection{Greedy Algorithm Optimized with CELF} 
+One of the most notable work in improving the greedy algorithm is [2], where submodularity is exploited to develop an efficient algorithm called CELF, based on a "lazy-forward" optimization in selecting seeds. The idea is that the marginal gain of a vertex in the current iteration cannot be better than its marginal gain in the previous iterations. CELF maintains a table $\langle u, \Delta_{u}(S) \rangle$ sorted on $\Delta_{u}(S)$ in decreasing order, where S is the current seed set and $\Delta_{u}(S)$ is the marginal gain of $u$ w.r.t $S$. $\Delta_{u}(S)$ is re-evaluated only for the top vertex at a time and if needed, the table is resorted. If a vertex remains at the top, it is picked as the next seed. Leskovec et al.[2] empirically shows that CELF dramatically improves the efficiency of the greedy algorithm. 
+To control the running time, the program should exit before time out. As a heuristic way to solve the time limitation problem, the algorithm will stop evaluation and add the first $k-|s|$ vertices in the max heap to the seed set $S$ when the program is about to end.
+
+\begin{algorithm}
+\caption{CELF}
+\begin{algorithmic}[h]
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\REQUIRE $G, model, k$
+\ENSURE expected seed set 
+\\
+\STATE initialize seed set $S\gets\varnothing$, max heap $Q\gets\varnothing$, $v.flag\gets0$ for each $v\in V$
+\FOR{$v\in V$}
+\STATE $v.mg\gets$get\_influence($G,{v}$)
+\STATE add $v$ to $Q$ by $v.mg$ in descending order
+\ENDFOR
+\WHILE{$|S|<k$}
+\STATE $u\gets Q.pop$
+\IF{$u.flag = |S|$}
+\STATE $S\gets S+{u}$
+\STATE $Q\gets Q-{u}$
+\ELSE
+\STATE $u.mg\gets$ get\_influence($G,S+{u}$) - get\_influence($G,S$)
+\STATE $u.flag\gets|S|$
+\STATE insert $u$ into heap $Q$
+\ENDIF
+\ENDWHILE
+\RETURN $S$
+\end{algorithmic} 
+\end{algorithm}
+\bigskip
+\section{Empirical Verification}
+
+\subsection{Dataset}
+Considered that there are enough testing data for this project, I didn't use the other datasets from the website. I only used datasets that the course provided.
+
+\subsection{Performance measurement}
+For ISE, the less time cost of the evaluation which can output the influence spread with tolerant error is considered as the better performance. For IMP, the larger influence spread of the seed set output by searching and evaluation not exceeding limit time is considered as the better performance.
+
+\subsection{Hyperparameters}
+To save the time when the evaluation result converges, the "tolerant error coefficient and" the "max count" are defined.
+\par
+For IMP, the cost time of computing influence spread for each iteration in CELF should be much smaller. Therefore, the "max rounds" for IMP is defined.
+\subsubsection{Tolerant Error Coefficient}0.0001 - 0.01
+\subsubsection{Max Count}5
+\subsubsection{Max Rounds}50 - 1000
+
+
+\subsection{Experiment Results}
+The test result on my Dell laptop is shown in the tables. According to the result, the IC diffusion model is nearly half faster than LT model. 
+\begin{table}[ht]
+\centering
+\caption{ISE Result (time limit: 60s)}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+ & model & seed & error & count & time \\ \hline
+network & IC & 5 & 0.0001 & 5 & 1.27 \\ \hline
+network & LT & 5 & 0.0001 & 5 & 1.81 \\ \hline
+NetHEPT & IC & 50 & 0.0001 & 5 & 19.3 \\ \hline
+NetHEPT & LT & 50 & 0.0001 & 5 & 39.8 \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{IMP Result (time limit: 60s)}
+\begin{tabular}{|c|c|c|c|c|c|c|c|}
+\hline
+ & model & seed & error & count & rounds & time & result \\ \hline
+network & IC & 5 & 0.0001 & 5 & 1000 & 2.50 & 30.55 \\ \hline
+network & LT & 5 & 0.0001 & 5 & 1000 & 4.84 & 36.97 \\ \hline
+NetHEPT & IC & 50 & 0.01 & 5 & 50 & 58.2 & 1005.1 \\ \hline
+NetHEPT & LT & 50 & 0.01 & 5 & 50 & 59.3 & 1351.9 \\ \hline
+\end{tabular}
+\end{table}
+
+\subsection{Conclusion}
+The IC model and LT model are both very classic diffusion model in IMP. The value of influence spread are different due to the mathematical influence probability is different. LT model is considered to have a  larger spread than IC model. The greedy algorithm to realize IM is greatly improved by CELF method. Although there are some papers have proposed improved CELF like CELF++ and Lv\_CELF, the practical performances are not better than classic CELF in this project. There are still a lot of space for improvement of my algorithm. The multiprocessing can be used better and the algorithm for CELF can be replaced as other more optimized algorithms.
+
+\bigskip
+\section{References}
+\bigskip
+\noindent
+[1] P. Domingos and M. Richardson, "Mining the network value of customers," in KDD, 2001, pp. 57–66.
+
+\noindent
+[2] J. Leskovec, A. Krause, C. Guestrin, C. Faloutsos, J. VanBriesen, and N. Glance, "Cost-effective outbreak detection in networks," in KDD, 2007, pp. 420–429.
+
+\noindent
+[3] C. Budak, D. Agrawal, and A. El Abbadi, "Limiting the spread of misinformation in social networks," in WWW, 2011, pp. 665–674.
+
+\noindent
+[4] X. He, G. Song, W. Chen, and Q. Jiang, "Influence blocking maximization in social networks under the competitive linear threshold model," in SDM, 2012, pp. 463–474.
+
+\noindent
+[5] M. Ye, X. Liu, and W.-C. Lee, "Exploring social influence for recommendation: A generative model approach," in SIGIR, 2012, pp. 671–680.
+\end{document}
+
+\noindent
+[6] J. Leskovec, A. Krause, C. Guestrin, C. Faloutsos, J. VanBriesen, and N. Glance, “Cost-effective outbreak detection in networks,” in Proceedings of the 13th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining, ser. KDD ’07. New York, NY, USA: ACM, 2007, pp. 420–429. [Online]. Available: http://doi.acm.org/10.1145/1281192.1281239

@@ -1,4 +1,4 @@
-\documentclass[journal,twoside,web]{ieeecolor}
+\documentclass[9pt,shortpaper,twoside,web]{ieeecolor}
 \usepackage{generic}
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
@@ -12,13 +12,11 @@
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
-\markboth{\journalname, 12/31/2018}{Sequential Minimal Optimization and stochastic gradient descent for Training Support Vector Machines}
+\markboth{\journalname, 2018}{Optimization Algorithms for Training Support Vector Machines}
 
 \begin{document}
-\title{
-\bigskip Sequential Minimal Optimization and stochastic gradient descent for Training Support Vector Machines}
-\author{Kemiao Huang, 11610728, \IEEEmembership{CSE, Southern University of Science and Technology}
-\vspace{-4ex}}
+\title{\bigskip\bigskip Optimization Algorithms for Training Support Vector Machines}
+\author{Kemiao Huang, 11610728, \IEEEmembership{Undergraduate, CSE}}
 \maketitle
 
 \begin{abstract}
@@ -42,6 +40,10 @@ SVMs are helpful in text and hypertext categorization as their application can s
 This section generally describes the two training methods and mathematical derivation for SVMs.
 \subsection{Notation}
 The important variable notations are shown in TABLE 1.
+
+\subsection{Data Structures}
+In this project, little special data structure is used. Overall, the most important structure is Numpy array. The mathematical matrix calculation is the main implementation for stochastic gradient descent algorithm and sequential minimal optimization algorithm.
+
 \begin{table}[]
 \centering
 \caption{Important variables used in the report}
@@ -59,10 +61,6 @@ $C$							  & penalty parameter for soft margin algorithm\\
 $N$                           & number of iterations             
 \end{tabular}
 \end{table}
-
-
-\subsection{Data Structures}
-In this project, little special data structure is used. Overall, the most important structure is Numpy array. The mathematical matrix calculation is the main implementation for stochastic gradient descent algorithm and sequential minimal optimization algorithm.
 
 \subsection{Model Design}
 SVM model is trained by eigenvectors using stochastic gradient descent algorithm or sequential minimal optimization algorithm. 

@@ -1,0 +1,296 @@
+\documentclass[9pt,shortpaper,twoside,web]{ieeecolor}
+\usepackage{generic}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{caption}
+\usepackage{amssymb}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\markboth{\journalname, 2018}
+{Author: Kemiao Huang, Gomoku: A Fundamental Application for Adversarial Learning  (October 2018)}
+\begin{document}
+\title{\bigskip\bigskip Gomoku: A Fundamental Application for Adversarial Learning}
+\author{Kemiao Huang, 11610728, \IEEEmembership{Undergraduate, CSE}}
+\maketitle
+
+\begin{abstract}
+Gomoku is a fundamental chess game with a clear-defined game rule. This work focuses on designing the adverarial algorithms for playing Gomoku automatically. The proposed methods mainly include heuristic searching, negemax and alpha-beta pruning. In the SUSTech Gomoku benchmark, this implementation shows competitive results.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Artificial intelligence, Gomoku, adversarial learning, hurisitic searching, pruning
+\end{IEEEkeywords}
+
+
+\section{Preliminaries}
+The goal of this project is to realize a Gomoku AI by using classical algorithms for game AI. To check how much intelligence does the AI have, the codes are submitted to the competition platform and evaluated as scores.
+\subsection{Software}
+This project is written by Python so PyCharm IDE was used because of its usefulness for editing and debug. The libraries contain numpy and functools.
+\subsection{Algorithm}
+The algorithms used in this project contain heuristic search, negamax and alpha-beta pruning.  
+
+The evaluation function is to compute the value which is associated with each position or state of the game. The value indicates how good it would be for a player to reach that position. The heuristic search is to pick out a number of empty positions which will most certainly win without far prediction. 
+
+Minimax assumes that the opponent will always make the best move. It let the player make the move that maximizes the minimum value of the position resulting from the opponent's possible following moves[1]. 
+
+Alpha-beta pruning reduces the number of nodes that need to be evaluated in the search tree by the negamax algorithm.
+
+Negamax algorithm relies on the fact that max(a,b) = -min(-a,-b) to simplify the implementation of the minimax algorithm. Algorithm optimizations for minimax are also equally applicable for Negamax. In this project, negamax with alpha-beta pruning is used.
+
+
+\section{Methodology}
+The details of the design of the Gomoku game AI will be discussed in this section.
+
+
+\subsection{Representation}
+The chessboard is represented as a numpy array. In the array, 0 means empty, -1 means black and 1 means white. The pieces in chessboard can be grouped as different patterns or threat types. Different patterns are labelled as different scores.
+
+\subsection{Architecture}
+The basic parameters are defined as global variables. The AI class contains attributes of chessboard, board size, color, time out, candidate list, count of total pieces, score caches for score evaluation of self and the opponent. Most functions are defined in the class except some static functions such as compare functions.
+
+\subsection{Details of Algorithms}
+\subsubsection{Opening}
+To avoid heuristic search failure, the number of total pieces in the chessboard is counted at the beginning of the 'go' function. To be clear, a simple opening function is written.  
+
+\begin{algorithm}
+ \caption{simple opening}
+ \begin{algorithmic}[h]
+ \renewcommand{\algorithmicrequire}{\textbf{Input:}}
+ \renewcommand{\algorithmicensure}{\textbf{Output:}}
+ \REQUIRE $chessboard$
+ \ENSURE  position of next move\\ 
+  \IF {$chessboard$ is None}
+  \RETURN None
+  \ENDIF
+  \STATE $count$ = number of pieces in $chessboard$ \\
+  \IF {($count > 1$)}
+  \RETURN None
+  \ENDIF \\
+  \IF {($count == 0$)}
+  \STATE index = center of $chessboard$
+  \RETURN $index$
+  \ENDIF \\
+  \RETURN index next to the first piece at the opposite side respect to the chessboard
+ \end{algorithmic} 
+ \end{algorithm}
+\subsubsection{Score Evaluation}
+After the opening, the scores of the empty places are initialized for heuristic search. To reduce the time, all the empty places whose close neighbours are less than 2 are discarded when doing evaluation. The \textit{evaluation} function is to evaluate the score for one index.
+
+\begin{algorithm}
+ \caption{evaluation}
+ \begin{algorithmic}[h]
+ \renewcommand{\algorithmicrequire}{\textbf{Input:}}
+ \renewcommand{\algorithmicensure}{\textbf{Output:}}
+ \REQUIRE $piece\_index$, $color$, $direction$
+ \ENSURE score of one empty space 
+  \FOR {$dir$ in the 4 directions}
+  \IF {$direction$ is None or $dir$ == $direction$}
+  \STATE $cnt_1$ = $cnt_2$ = 1, $empty\_loc$ = 0, $end_1$ = $end_2$ = 0, $empty_2$ = False
+  \STATE do the first half traverse for $cnt_1$, $end_1$, $empty_2$, $empty\_loc$
+  \IF {$empty_2$ is not None}
+  \STATE do the second half traverse for $cnt_2$, $end_2$, $empty_2$, $empty\_loc$
+  \ENDIF
+  \STATE use the values above to match the patterns and store the score in $cache$
+  \ENDIF
+  \ENDFOR
+  \RETURN sum of scores at index in $cache$
+ \end{algorithmic} 
+ \end{algorithm}
+ 
+Generally, the evaluation for each direction is divided into two parts from the piece we focus. I use this kind of approach because it helps to check the pattern when there is a more than five loose connected with one empty space in it. Simply, if that situation occurs, it is either a connected five or a live four or a flush four. I can just check each part and the empty space location to get the pattern straightforward.
+
+To reduce the time cost, the parameter 'direction' is used. The reason is that each time adding or removing a piece from the chessboard, the scores of spaces around the piece should be updated. The score of each piece is only changed through the direction of the line connected by itself and the new added or removed piece. On the other directions, it doesn't need to update.
+
+Additionally, the $empty_2$ variable is used for check 'big jump live two', which is a pattern equivalent to live two and jump live two. 
+
+\subsubsection{Heuristic Search}
+Heuristic function is to group up the empty pieces by their score levels and return the pieces list with best score level. Obviously, it needs some strategies to group the pieces to control the balance of keeping the number of the output small enough and ensuring the output contains the piece which will have the biggest threat. 
+
+\begin{algorithm}
+ \caption{heuristic search}
+ \begin{algorithmic}[h]
+ \renewcommand{\algorithmicrequire}{\textbf{Input:}}
+ \renewcommand{\algorithmicensure}{\textbf{Output:}}
+ \REQUIRE $color$
+ \ENSURE  pieces list with biggest threat\\
+ \STATE initialize the empty lists: $five$, $live\_four$, $flush\_four$, $two\_three$, $three$, $two$, $one$ for self and opponent respectively.
+ \FOR{empty $piece$ in chessboard}
+ \STATE discard the too sparse pieces 
+ \STATE get the scores from caches for self and opponent
+ \STATE append $piece$ to one right pattern list
+ \ENDFOR
+ \STATE sort the lists
+ \STATE check each list whether it is empty for self first and then opponent
+ \IF{$five$ or $live\_four$ is not empty}
+ \RETURN $five$ or $live\_four$
+ \ENDIF
+ \STATE $result$ = combine the left non-empty lists in order by different priorities
+ \IF {$len(result)>max\_len$}
+ \STATE cut the tail of $result$ 
+ \ENDIF
+ \RETURN $result$
+ \end{algorithmic} 
+ \end{algorithm}
+
+\subsubsection{Negamax and Alpha-Beta Pruning}
+Negamax algorithm is executed to deepen the search. Although the alpha-beta pruning is used, the time complexity is still very large compared to the other functions in the game. Actually, the performance of using negamax is greatly depends on the evaluation function.  
+
+\begin{algorithm}
+ \caption{negemax with alpha-beta pruning}
+ \begin{algorithmic}[h]
+ \renewcommand{\algorithmicrequire}{\textbf{Input:}}
+ \renewcommand{\algorithmicensure}{\textbf{Output:}}
+ \REQUIRE $self$, $depth$, $alpha$, $beta$, $color$
+ \ENSURE  best score with step\\
+  \STATE $pieces\_list$ = pieces given by heuristic search
+  \IF {$depth$ == $0$ or $pieces\_list$ is empty or $five$ score piece $\in$ $pieces\_list$}
+  \STATE$self\_max$ = $rival\_max$ = $0$\\ 
+  \FOR {$piece$ in empty places}
+  \STATE $self\_max$ = max($self\_max$, $piece$ score in self score cache)
+  \STATE $rival\_max$ = max($rival\_max$, $piece$ score in rival score cache)
+  \ENDFOR
+  \IF {$color$ == $self.color$}
+  \RETURN $self\_max - rival\_max$
+  \ELSE
+  \RETURN $rival\_max - self\_max$
+  \ENDIF
+  \ENDIF  
+  \STATE $best$ = -$\infty$
+  \FOR {$piece$ in $pieces\_list$}
+  \STATE put $piece$
+  \STATE $v$ = -$alphabeta$($depth-1$, $-beta$, $-alpha$, $-color$)
+  \IF {$v>best$}
+  \STATE $best$ = $v$
+  \ENDIF
+  \STATE $alpha$ = max($alpha$, $v.score$)
+  \STATE remove $piece$
+  \IF {$v$ \textit{greater than} $beta$}
+  \RETURN $beta$
+  \ENDIF
+  \ENDFOR
+ \RETURN $best$ 
+ \end{algorithmic} 
+ \end{algorithm}
+
+\subsubsection{Sort and Comparison}
+After adjusting the scores by negamax algorithm, The candidate list should be sorted to get the best move. The sort() function in python can be used but the comparison function in sort in not allowed in Python 3. Therefore, I use the library 'functools' to convert the comparison function to key.
+
+\begin{algorithm}
+ \caption{compare scores}
+ \begin{algorithmic}[h]
+ \renewcommand{\algorithmicrequire}{\textbf{Input:}}
+ \renewcommand{\algorithmicensure}{\textbf{Output:}}
+ \REQUIRE $a$, $b$
+ \ENSURE comparison value 
+  \IF {$a.max\_score$ \textit{equal} $b.max\_score$}
+  \RETURN $b.totalScore$ - $a.totalScore$
+  \ENDIF
+  \RETURN $b.maxScore$ - $a.maxScore$
+\end{algorithmic} 
+\end{algorithm}
+
+Moreover, the equal, greater, less et.al functions are given to approximately compare the value instead of using absolute comparison. The goal is to reserve the approximate results for further comparisons in algorithms of negamax and sorting. This method is referred from [2].
+
+\begin{algorithm}
+ \caption{equal}
+ \begin{algorithmic}[h]
+ \renewcommand{\algorithmicrequire}{\textbf{Input:}}
+ \renewcommand{\algorithmicensure}{\textbf{Output:}}
+ \REQUIRE $a$, $b$
+ \ENSURE comparison value 
+  \STATE $b$ = $b$ or $0.01$
+  \IF {$b\geq0$}
+  \RETURN $b/threshold\leq a\leq b*threshold$
+  \ENDIF
+  \RETURN $b*threshold\leq a\leq b/threshold$
+ \end{algorithmic} 
+ \end{algorithm}
+ 
+\begin{algorithm}
+ \caption{greater}
+ \begin{algorithmic}[h]
+ \renewcommand{\algorithmicrequire}{\textbf{Input:}}
+ \renewcommand{\algorithmicensure}{\textbf{Output:}}
+ \REQUIRE $a$, $b$
+ \ENSURE comparison value 
+  \IF {$b\geq0$}
+  \RETURN $a\geq (b+0.1)*threshold$
+  \ENDIF
+  \RETURN $a\geq (b+0.1)/threshold$
+ \end{algorithmic} 
+ \end{algorithm}
+ 
+
+The two big difficulties in the algorithm implementation are the pattern matching and using recursion in pruning function. The number of code lines for matching and score evaluation is about 500 and pruning recursion is difficult to debug since the moves of pieces are too many.   
+
+ 
+\section{Empirical Verification}
+This section will discuss the test and result part of this project.
+
+\subsection{Design}
+Although the preliminary test file is provided, the test data is not enough for performance guarantee. Followed by the provided 'code\_check.py' file, modify the '\_check\_advance\_chessboard()' function and the expected result list can test all the specific chessboard as desired.
+Fortunately, the school has built a perfect on-line competition platform for us to upload the code and play against each other. The chess logs are reserved to modify the parameters the strategy for the algorithms, especially the evaluation function and the constant scores for different patterns.
+
+\subsection{Data}
+According to experience, the basic test should be able to check whether it can defence the two-live-three or flush-four-live-three threats. The number of the good way to attack is usually not only one so the test actually can only focus on defence.  
+\subsection{Performance}
+The speed of negamax is the bottleneck of the entire program. The required time for one move is less than five seconds. In this project, interrupt function is not set so to ensure the result comes before time out the search depth for negamax is set as two.
+\subsection{Result}
+The evaluation of different patterns are summarized as a table. The self part should be larger than the opponent because attack has higher priority than defence. The scores are mostly set by experience. The learning algorithm is not considered in this project.
+
+\begin{table}[ht]
+\caption{Scores for Chess Patterns}
+\centering
+\begin{tabular}{ccc}
+\hline
+\textbf{pattern}   & \textbf{self} & \textbf{opponent} \\ \hline
+sleep one          & 15            & 10                \\
+live one           & 40            & 25                \\
+sleep two          & 120           & 75                \\
+(big)jump live two & 260           & 240               \\
+live two           & 450           & 415               \\
+sleep three        & 650           & 500               \\
+jump live three    & 1550          & 1150              \\
+live three         & 1730          & 1425              \\
+flush four         & 2450          & 1750              \\
+live four          & 4750          & 3600              \\
+five               & 20000         & 15000             \\ \hline
+\end{tabular}
+\end{table}
+
+The other parameters in the program are all by testing. 
+
+\begin{table}[ht]
+\caption{Other Parameters}
+\centering
+\begin{tabular}{cc}
+\hline
+\textbf{parameter} & \textbf{value} \\ \hline
+search depth       & 2              \\
+threshold          & 1.4            \\
+heuristic max len  & 10             \\ \hline
+\end{tabular}
+\end{table}
+
+The speed of each move with negamax algorithm is about 2 seconds. If the search depth is set as zero, the time cost is usually less than 0.5 second.
+
+
+\subsection{Analysis}
+Five seconds are usually sufficient for one move. However, when the search depth is set as 4 or larger, the result sometimes goes wrong and the AI is not much smarter. It is inferred that there may be some bugs when implementing the negamax algorithm. 
+To further the searching algorithm, some strategies such as continuously finding moves for flush four and finding the check pieces for two-threes and flush-four-live-three can be used. Actually, those strategies can be ignored if the search depth is large enough but the benefit for those strategies is to save some time when doing search. 
+
+
+\bibliographystyle{IEEEtran}
+\begin{thebibliography}{1}
+\bibitem{reference}
+Kuan Liang Tan, C. H. Tan, K. C. Tan and A. Tay, "Adaptive game AI for Gomoku," 2009 4th International Conference on Autonomous Robots and Agents, Wellington, 2000, pp. 507-512.
+
+\bibitem{reference}
+Li, H. (2018). lihongxun945/gobang. [online] GitHub. Available at: https://github.com/lihongxun945/gobang [Accessed 12 Oct. 2018].
+\end{thebibliography}
+
+\end{document}
